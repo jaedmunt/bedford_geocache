@@ -113,7 +113,7 @@ if user_input:
                         st.error(f"Error getting what3words for location {idx+1}: {str(e)}")
                 st.success("What3Words generated successfully!")
                 # Rerun the app so that the data editor (and later the map) shows the new values
-                st.experimental_rerun()
+                st.rerun()
 
         # Create the map only if we have some coordinates in our dataframe
         if not st.session_state.df.empty:
