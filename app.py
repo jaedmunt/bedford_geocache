@@ -120,7 +120,8 @@ if user_input:
                     st.code(words, language=None)  # Displays in a copyable code block
                 except Exception as e:
                     what3words_list.append('')
-                    st.error(f"Error getting what3words for location {idx+1}")
+                    st.error(f"""Error getting what3words for location {idx+1}
+                             Error: {str(e)}""")
 
             st.session_state.df = edited_df
 
