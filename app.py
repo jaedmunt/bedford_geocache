@@ -10,129 +10,143 @@ from streamlit_js_eval import get_geolocation
 
 st.title("Bedford Geocache")
 
-# Initialize session state variables
+# Initialize session state variables if they don't exist
 if 'user_coords' not in st.session_state:
     st.session_state.user_coords = ''
 if 'current_location' not in st.session_state:
     st.session_state.current_location = None
-# Initialize our dataframe with the proper columns if not already set
 if 'df' not in st.session_state:
-    st.session_state.df = pd.DataFrame(columns=["Latitude", "Longitude", "Assigned_To", "What3Words"])
+    st.session_state.df = pd.DataFrame(
+        columns=["Latitude", "Longitude", "Assigned_To", "What3Words"]
+    )
 
-# A simple distance function (in km)
+# A simple function to calculate distances (in km)
 def calculate_distance(lat1, lon1, lat2, lon2):
-    R = 6371  # Earth radius in kilometers
+    R = 6371  # Earth radius in km
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
     dlat = lat2 - lat1
     dlon = lon2 - lon1
-    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1-a))
     return round(R * c, 2)
 
-# Helper to parse coordinates from a text string
+# Function to parse user-entered coordinate text
 def prepare_coords(coords_text):
-    # Expecting each line to be "lat, long"
-    coords = [line.strip().split(',') for line in coords_text.strip().split('\n') if line.strip()]
-    return [[float(lat.strip()), float(lon.strip())] for lat, lon in coords]
+    coords = []
+    for line in coords_text.strip().split('\n'):
+        if line.strip():
+            parts = line.split(',')
+            if len(parts) != 2:
+                continue  # Skip lines that don't have two parts
+            lat, lon = parts
+            coords.append([float(lat.strip()), float(lon.strip())])
+    return coords
 
-# Instructions and test format
+# Display instructions and test coordinates
 st.write("Test coordinates (Center Parcs): 50.9588, -1.2753")
 message_format = "50.9588, -1.2753\n52.99648, -1.1581"
 st.info(f"Format: lat, long (comma separated) with each on a newline:\n{message_format}")
 
-# Input coordinates
+# Text area for user to enter coordinates
 user_input = st.text_area("Enter coordinates", value=st.session_state.user_coords)
 if user_input:
     st.session_state.user_coords = user_input
-    
-    # A copy button (using JS to copy to clipboard)
+
+    # Copy button to copy coordinates (using JS)
     st.button("Copy Coordinates", on_click=lambda: st.write(
-        '<script>navigator.clipboard.writeText(`' + user_input + '`);</script>', 
+        f'<script>navigator.clipboard.writeText(`{user_input}`);</script>',
         unsafe_allow_html=True
     ))
-
+    
     try:
         # Parse the entered coordinates
         coords = prepare_coords(user_input)
         
-        # Create or update the dataframe based on the number of coordinates entered
+        # Create or update the dataframe based on the number of coordinates
         if st.session_state.df.empty or len(st.session_state.df) != len(coords):
             st.session_state.df = pd.DataFrame(coords, columns=["Latitude", "Longitude"])
             st.session_state.df["Assigned_To"] = "Unassigned"
             st.session_state.df["What3Words"] = ""
         else:
-            # If the dataframe already exists, update only the coordinates while keeping assignments and words
+            # If already created, update only the Latitude and Longitude values
             temp_df = pd.DataFrame(coords, columns=["Latitude", "Longitude"])
             st.session_state.df[["Latitude", "Longitude"]] = temp_df
 
-        # Get current location (via browser geolocation)
+        # Button to get current location via the browser
         if st.button("Get Current Location"):
             try:
                 loc = get_geolocation()
-                st.session_state.current_location = [loc["coords"]["latitude"], loc["coords"]["longitude"]]
+                st.session_state.current_location = [
+                    loc["coords"]["latitude"], loc["coords"]["longitude"]
+                ]
                 st.success(f"Current location: {st.session_state.current_location}")
             except Exception as e:
                 st.error("Could not get current location from browser")
 
         st.subheader("Location Assignments")
         people = ['Unassigned', 'Tilly', 'Jaedon', 'Phil', 'Cally', 'Mitch', 'Freye']
-        # Use a fixed key for the data editor so that changes persist
         edited_df = st.data_editor(
             st.session_state.df,
             key="data_editor",
             column_config={
                 "Assigned_To": st.column_config.SelectboxColumn(
-                    "Assigned To",
-                    options=people,
-                    required=True
+                    "Assigned To", options=people, required=True
                 ),
                 "What3Words": st.column_config.TextColumn(
-                    "What3Words",
-                    help="Click 'Generate What3Words' to populate"
+                    "What3Words", help="Click 'Generate What3Words' to populate"
                 )
             }
         )
-        # Update the session dataframe from the editor
+        # Update our session dataframe with any changes made in the editor
         st.session_state.df = edited_df
 
-        # Generate What3Words for each coordinate when the button is clicked
+        # Button to generate What3Words addresses
         if st.button("Generate What3Words"):
-            # Read your API key from secrets
+            # Get your What3Words API key from Streamlit secrets
             W3W_KEY = st.secrets.WHAT3WORDS["WHAT3WORDS_API_KEY"]
             if not W3W_KEY:
-                st.error("What3Words API key not found. Please set WHAT3WORDS_API_KEY in your secrets.")
+                st.error("What3Words API key not found. Please set it in your secrets.")
             else:
                 w3w = what3words.Geocoder(W3W_KEY)
                 for idx, row in st.session_state.df.iterrows():
                     try:
-                        # Call the API using the latitude and longitude values
-                        res = w3w.convert_to_3wa(coordinates={"lat": row['Latitude'], "lng": row['Longitude']})
+                        # Call the What3Words API. Note: We pass a what3words.Coordinates object.
+                        res = w3w.convert_to_3wa(
+                            what3words.Coordinates(row['Latitude'], row['Longitude'])
+                        )
                         words = res.get('words', '')
+                        # Update the dataframe with the retrieved three-word address
                         st.session_state.df.at[idx, 'What3Words'] = words
+                        st.code(f"Location {idx+1}: {words}")
                     except Exception as e:
-                        st.error(f"Error getting what3words for location {idx+1}: {str(e)}")
+                        st.error(f"Error getting What3Words for location {idx+1}: {str(e)}")
                 st.success("What3Words generated successfully!")
-                # Rerun the app so that the data editor (and later the map) shows the new values
+                # Rerun the app so that the data editor (and map) refresh with updated What3Words values
                 st.rerun()
 
-        # Create the map only if we have some coordinates in our dataframe
+        # Build the map if we have some coordinates
         if not st.session_state.df.empty:
-            # Use the first coordinate as the center
-            center = [st.session_state.df.iloc[0]['Latitude'], st.session_state.df.iloc[0]['Longitude']]
+            # Use the first coordinate as the map center
+            center = [
+                st.session_state.df.iloc[0]['Latitude'],
+                st.session_state.df.iloc[0]['Longitude']
+            ]
             m = folium.Map(location=center, zoom_start=10)
-            colors = {'Tilly': 'red', 'Jaedon': 'blue', 'Phil': 'green',
-                      'Cally': 'purple', 'Mitch': 'orange', 'Freye': 'pink',
-                      'Unassigned': 'gray'}
-
-            # Add a marker for your current location (if available)
+            colors = {
+                'Tilly': 'red', 'Jaedon': 'blue', 'Phil': 'green',
+                'Cally': 'purple', 'Mitch': 'orange', 'Freye': 'pink',
+                'Unassigned': 'gray'
+            }
+            
+            # Add a marker for the current location (if available)
             if st.session_state.current_location:
                 folium.Marker(
                     location=st.session_state.current_location,
                     icon=folium.Icon(color='green', icon='home'),
                     popup='Current Location'
                 ).add_to(m)
-
-            # Add a marker for each coordinate from the dataframe
+            
+            # Add markers for each coordinate in the dataframe
             for idx, row in st.session_state.df.iterrows():
                 color = colors.get(row['Assigned_To'], 'gray')
                 popup_text = f"Location {idx+1}<br>Assigned: {row['Assigned_To']}"
@@ -143,17 +157,20 @@ if user_input:
                     icon=folium.Icon(color=color, icon='info-sign'),
                     popup=popup_text
                 ).add_to(m)
-                # Draw a line from current location (if available) to the coordinate
+                # Optionally, draw a line from current location to each coordinate
                 if st.session_state.current_location:
                     PolyLine(
-                        locations=[st.session_state.current_location, [row['Latitude'], row['Longitude']]],
+                        locations=[
+                            st.session_state.current_location,
+                            [row['Latitude'], row['Longitude']]
+                        ],
                         weight=2,
                         color=color,
                         opacity=0.8
                     ).add_to(m)
             st_folium(m, width=700, height=500)
 
-            # If you have a current location, display a table with the distances
+            # If current location is available, display distances
             if st.session_state.current_location:
                 st.subheader("Distances from current location")
                 distances = []
@@ -172,7 +189,7 @@ if user_input:
                     })
                 st.dataframe(pd.DataFrame(distances))
 
-            # Enable CSV download of your dataframe
+            # Allow CSV download of the updated dataframe
             csv = st.session_state.df.to_csv(index=False)
             st.download_button(
                 "Download CSV",
@@ -180,6 +197,6 @@ if user_input:
                 "geocache_locations.csv",
                 "text/csv"
             )
-
+            
     except Exception as e:
         st.error(f"Error processing coordinates: {str(e)}")
