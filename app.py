@@ -7,7 +7,7 @@ import requests
 from folium import PolyLine
 from math import radians, sin, cos, sqrt, atan2
 import what3words
-import os
+# Removed unused os import
 
 
 
@@ -110,19 +110,17 @@ if user_input:
         # Generate What3Words
         if st.button("Generate What3Words"):
             what3words_list = []
-            w3w = what3words.Geocoder(api_key=W3W_KEY)
+            w3w = what3words.Geocoder(W3W_KEY)
             for idx, row in edited_df.iterrows():
                 try:
-                    res = w3w.convert_to_3wa({"coordinates": [row['Latitude'], row['Longitude']]})
+                    res = w3w.convert_to_3wa(what3words.Coordinates(row['Latitude'], row['Longitude']))
                     words = res.get('words')
                     what3words_list.append(words)
                     edited_df.at[idx, 'What3Words'] = words
                     st.code(words, language=None)  # Displays in a copyable code block
                 except Exception as e:
                     what3words_list.append('')
-                    st.error(f"""Error getting what3words for location {idx+1}
-                             Error: {str(e)}""")
-
+                    st.error(f"Error getting what3words for location {idx+1}\nError: {str(e)}")
             st.session_state.df = edited_df
 
         # Create map
