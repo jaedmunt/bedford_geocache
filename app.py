@@ -7,7 +7,6 @@ import requests
 from folium import PolyLine
 from math import radians, sin, cos, sqrt, atan2
 import what3words
-from python_dotenv import load_dotenv
 import os
 
 
