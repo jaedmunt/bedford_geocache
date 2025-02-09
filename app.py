@@ -66,7 +66,7 @@ if user_input:
         
         # Create/Update DataFrame
         # Create/Update DataFrame and initialize What3Words key from dotenv
-        W3W_KEY = st.secrets.WHAT3WORDS("WHAT3WORDS_API_KEY")
+        W3W_KEY = st.secrets["WHAT3WORDS_API_KEY"]
         if not W3W_KEY:
             st.error("What3Words API key not found. Please set WHAT3WORDS_API_KEY in your .env file.")
 
@@ -109,16 +109,17 @@ if user_input:
 
         # Generate What3Words
         if st.button("Generate What3Words"):
-            what3words = []
+            what3words_list = []
+            w3w = what3words.Geocoder(W3W_KEY)
             for idx, row in edited_df.iterrows():
                 try:
-                    res = geocoder.reverse_geocode(row['Latitude'], row['Longitude'])
-                    words = res['words']
-                    what3words.append(words)
+                    res = w3w.convert_to_3wa(f"{row['Latitude']},{row['Longitude']}")
+                    words = res.get('words')
+                    what3words_list.append(words)
                     edited_df.at[idx, 'What3Words'] = words
                     st.code(words, language=None)  # Displays in a copyable code block
                 except Exception as e:
-                    what3words.append('')
+                    what3words_list.append('')
                     st.error(f"Error getting what3words for location {idx+1}")
 
             st.session_state.df = edited_df
