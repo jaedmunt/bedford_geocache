@@ -43,8 +43,11 @@ def prepare_coords(coords_text):
     return coords
 
 # Display instructions and test coordinates
-st.write("Test coordinates (Center Parcs): 50.9588, -1.2753")
-message_format = "50.9588, -1.2753\n52.99648, -1.1581"
+st.write("Test coordinates (Center Parcs):") 
+
+st.code("50.9588, -1.2753")
+message_format = """50.9588, -1.2753 
+                    52.99648, -1.1581"""
 st.info(f"Format: lat, long (comma separated) with each on a newline:\n{message_format}")
 
 # Text area for user to enter coordinates
