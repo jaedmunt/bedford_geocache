@@ -27,7 +27,7 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     dlat = lat2 - lat1
     dlon = lon2 - lon1
     a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-    c = 2 * atan2(sqrt(a), sqrt(1-a))
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return round(R * c, 2)
 
 # Function to parse user-entered coordinate text
@@ -43,11 +43,10 @@ def prepare_coords(coords_text):
     return coords
 
 # Display instructions and test coordinates
-st.write("Test coordinates (Center Parcs):") 
-
+st.write("Test coordinates (Center Parcs):")
 st.code("50.9588, -1.2753")
-message_format = """50.9588, -1.2753 
-                    52.99648, -1.1581"""
+message_format = """50.9588, -1.2753
+52.99648, -1.1581"""
 st.info(f"Format: lat, long (comma separated) with each on a newline:\n{message_format}")
 
 # Text area for user to enter coordinates
@@ -113,10 +112,8 @@ if user_input:
                 w3w = what3words.Geocoder(W3W_KEY)
                 for idx, row in st.session_state.df.iterrows():
                     try:
-                        # Call the What3Words API. Note: We pass a what3words.Coordinates object.
-                        res = w3w.convert_to_3wa(
-                            what3words.Coordinates(row['Latitude'], row['Longitude'])
-                        )
+                        # Call the What3Words API using a what3words.Coordinates object.
+                        res = w3w.convert_to_3wa(what3words.Coordinates(row['Latitude'], row['Longitude']))
                         words = res.get('words', '')
                         # Update the dataframe with the retrieved three-word address
                         st.session_state.df.at[idx, 'What3Words'] = words
@@ -160,7 +157,7 @@ if user_input:
                     icon=folium.Icon(color=color, icon='info-sign'),
                     popup=popup_text
                 ).add_to(m)
-                # Optionally, draw a line from current location to each coordinate
+                # Draw a line from current location to each coordinate if current location exists
                 if st.session_state.current_location:
                     PolyLine(
                         locations=[
@@ -173,7 +170,7 @@ if user_input:
                     ).add_to(m)
             st_folium(m, width=700, height=500)
 
-            # If current location is available, display distances
+            # If current location is available, display a table of distances
             if st.session_state.current_location:
                 st.subheader("Distances from current location")
                 distances = []
@@ -203,3 +200,7 @@ if user_input:
             
     except Exception as e:
         st.error(f"Error processing coordinates: {str(e)}")
+
+# Add a refresh button that reruns the app without clearing cache
+if st.button("Refresh App (rerun)"):
+    st.rerun()
