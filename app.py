@@ -66,7 +66,7 @@ if user_input:
         
         # Create/Update DataFrame
         # Create/Update DataFrame and initialize What3Words key from dotenv
-        W3W_KEY = st.secrets["WHAT3WORDS_API_KEY"]
+        W3W_KEY = st.secrets.WHAT3WORDS["WHAT3WORDS_API_KEY"]
         if not W3W_KEY:
             st.error("What3Words API key not found. Please set WHAT3WORDS_API_KEY in your .env file.")
 
