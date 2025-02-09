@@ -103,7 +103,7 @@ if user_input:
         # Button to generate What3Words addresses
         if st.button("Generate What3Words"):
             # Get your What3Words API key from Streamlit secrets
-            W3W_KEY = st.secrets.WHAT3WORDS["WHAT3WORDS_API_KEY"]
+            W3W_KEY = st.secrets["WHAT3WORDS_API_KEY]
             if not W3W_KEY:
                 st.error("What3Words API key not found. Please set it in your secrets.")
             else:
