@@ -110,10 +110,10 @@ if user_input:
         # Generate What3Words
         if st.button("Generate What3Words"):
             what3words_list = []
-            w3w = what3words.Geocoder(W3W_KEY)
+            w3w = what3words.Geocoder(api_key=W3W_KEY)
             for idx, row in edited_df.iterrows():
                 try:
-                    res = w3w.convert_to_3wa(f"{row['Latitude']},{row['Longitude']}")
+                    res = w3w.convert_to_3wa({"coordinates": [row['Latitude'], row['Longitude']]})
                     words = res.get('words')
                     what3words_list.append(words)
                     edited_df.at[idx, 'What3Words'] = words
