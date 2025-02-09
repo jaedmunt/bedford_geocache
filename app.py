@@ -7,6 +7,7 @@ import requests
 from folium import PolyLine
 from math import radians, sin, cos, sqrt, atan2
 import what3words
+import streamlit_js_eval
 # Removed unused os import
 
 
@@ -79,14 +80,14 @@ if user_input:
             temp_df = pd.DataFrame(coords, columns=["Latitude", "Longitude"])
             st.session_state.df[["Latitude", "Longitude"]] = temp_df
         # Get current location
-        if check_internet() and st.button("Get Current Location"):
+        if st.button("Get Current Location"):
             try:
-                g = geocoder.ip('me')
-                if g.ok:
-                    st.session_state.current_location = g.latlng
-                    st.success(f"Current location: {g.latlng}")
+                from streamlit_js_eval import get_geolocation
+                loc = get_geolocation()
+                st.session_state.current_location = [loc["coords"]["latitude"], loc["coords"]["longitude"]]
+                st.success(f"Current location: {st.session_state.current_location}")
             except Exception as e:
-                st.error("Could not get current location")
+                st.error("Could not get current location from browser")
 
         # People assignment
         st.subheader("Location Assignments")
@@ -113,7 +114,7 @@ if user_input:
             w3w = what3words.Geocoder(W3W_KEY)
             for idx, row in edited_df.iterrows():
                 try:
-                    res = w3w.convert_to_3wa(what3words.Coordinates(row['Latitude'], row['Longitude']))
+                    res = w3w.convert_to_3wa(coordinates={"lat": row['Latitude'], "lng": row['Longitude']})
                     words = res.get('words')
                     what3words_list.append(words)
                     edited_df.at[idx, 'What3Words'] = words
